@@ -13,7 +13,9 @@ final class AppState: ObservableObject {
         case transcribing
     }
 
-    @Published private(set) var status: Status = .idle
+    @Published private(set) var status: Status = .idle {
+        didSet { updateMicGate() }
+    }
     @Published private(set) var lastTranscript = ""
 
     private let settings = AppSettings.shared
@@ -28,7 +30,9 @@ final class AppState: ObservableObject {
     /// Set while the press that started the current recording is still held.
     private var pressStartedAt: Date?
     /// A press that hasn't been held long enough yet to rule out an ⌥-shortcut.
-    private var pendingStart: Task<Void, Never>?
+    private var pendingStart: Task<Void, Never>? {
+        didSet { updateMicGate() }
+    }
     private var previewTask: Task<Void, Never>?
     /// Keeps timers precise from key press until the session ends (menu bar apps get throttled).
     private var latencyActivity: NSObjectProtocol?
@@ -52,6 +56,7 @@ final class AppState: ObservableObject {
         recorder.onLevel = { [weak self] level in self?.overlay.setLevel(level) }
         recorder.onInterruption = { [weak self] _ in self?.finishRecording() }
 
+        VirtualMicBridge.shared.start()
         Task { await engine.prepare() }
     }
 
@@ -262,6 +267,12 @@ final class AppState: ObservableObject {
         status = .idle
         hotkeys.interceptEscape = false
         endLatencyCritical()
+    }
+
+    /// 64Voice Mic goes silent from the hotkey press (before the mic even opens) until the
+    /// recording ends. A press that turns out to be a shortcut (⌥2 = @) unmutes a moment later.
+    private func updateMicGate() {
+        VirtualMicBridge.shared.setDictating(pendingStart != nil || status == .recording)
     }
 
     private func beginLatencyCritical() {

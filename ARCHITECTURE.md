@@ -15,6 +15,8 @@ Sources/SixtyFourVoice/
   Speech/    FluidAudio model download/load + transcription            — audio & speech
   Overlay/   cursor notch panel, SwiftUI notch view, placement engine   — overlay
   System/    global hotkey, text insertion, permissions, settings UI   — system
+Driver/      64Voice Mic virtual audio driver: BlackHole.c + VirtualMicConfig.h, built by
+             scripts/build-mic-driver.sh, installed by scripts/install-mic-driver.sh
 ```
 
 ## Flow
@@ -24,6 +26,16 @@ Sources/SixtyFourVoice/
 3. While recording: levels go to the overlay; every ~0.7 s the last ~12 s of audio is transcribed
    for a live preview.
 4. On release (or a second tap in toggle mode): stop, transcribe everything, paste with `TextInserter`.
+
+## 64Voice Mic
+
+The driver publishes two devices sharing one loopback buffer: the visible, input-only
+"64Voice Mic" (`64VoiceMic_UID`) that call apps record from, and the hidden, output-only
+"64Voice Mic Feed" (`64VoiceMic_2_UID`). `VirtualMicBridge` watches whether any app is running
+64Voice Mic. While one is, it plays the pinned mic into the feed through a private aggregate
+(mic as clock, feed drift-corrected) and one IOProc with a gain ramp. `AppState` mutes it from
+hotkey press until the recording ends; unmuting waits 250 ms. 64Voice never records from
+64Voice Mic: `CoreAudioDevices` leaves it out of the input list.
 
 ## Contracts (exact public surface each module provides)
 
@@ -49,6 +61,14 @@ struct AudioInputDevice: Identifiable, Hashable, Sendable {
     func stop() -> [Float]                     // all audio, 16 kHz mono Float32
     func cancel()
     func recentSamples(seconds: Double) -> [Float]   // thread-safe tail copy, 16 kHz mono
+}
+@MainActor final class VirtualMicBridge: ObservableObject {
+    static let shared: VirtualMicBridge
+    enum Status: Equatable { case notInstalled, off, needsMicAccess, waiting, live(source: String), failed(String) }
+    @Published private(set) var status: Status
+    @Published private(set) var isMuted: Bool
+    func start()                               // once, at launch
+    func setDictating(_ dictating: Bool)       // mute now; unmute 250 ms after false
 }
 @MainActor final class TranscriptionEngine: ObservableObject {
     static let shared: TranscriptionEngine

@@ -41,6 +41,26 @@ next one goes back to your mic as soon as it's connected. 64Voice routes its own
 mic directly and never changes the system default input. On first launch it adopts the mic you
 had selected in FluidVoice.
 
+## 64Voice Mic: mute calls while dictating
+
+64Voice can add a virtual microphone, **64Voice Mic**, that carries your 64Voice mic and goes
+silent while you dictate. Choose it as the input device in Discord (or any call app) and you're
+muted in the call whenever you talk to 64Voice: from the moment you press the hotkey until the
+recording ends.
+
+```bash
+scripts/install-mic-driver.sh               # one time; asks for your admin password
+scripts/install-mic-driver.sh --uninstall   # remove it again
+```
+
+Installing restarts Core Audio, which cuts all sound for a second or two. Then pick
+**64Voice Mic** in Discord → Settings → Voice & Video → Input Device. Leave the system input on
+your real mic. Turn it off in Settings → Microphone.
+
+64Voice only opens your mic while an app is actually listening to 64Voice Mic. If 64Voice isn't
+running, 64Voice Mic is silent. The driver is [BlackHole](https://github.com/ExistentialAudio/BlackHole)
+0.7.1 (GPLv3) built under its own name; see `Driver/`.
+
 ## Speech models
 
 - **Parakeet v2** (default): English, best accuracy. Reuses FluidVoice's download if present.

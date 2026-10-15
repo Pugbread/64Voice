@@ -22,6 +22,11 @@ final class AppSettings: ObservableObject {
         didSet { defaults.set(preferredMicName, forKey: Keys.preferredMicName) }
     }
 
+    /// Play the mic into 64Voice Mic (the virtual input from Driver/) and silence it while dictating.
+    @Published var feedVirtualMic: Bool {
+        didSet { defaults.set(feedVirtualMic, forKey: Keys.feedVirtualMic) }
+    }
+
     // MARK: Hotkey
 
     @Published var hotkey: HotkeyKey {
@@ -69,6 +74,7 @@ final class AppSettings: ObservableObject {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         defaults.register(defaults: [
+            Keys.feedVirtualMic: true,
             Keys.hotkey: HotkeyKey.rightOption.rawValue,
             Keys.hotkeyMode: HotkeyMode.hybrid.rawValue,
             Keys.speechModel: SpeechModelChoice.parakeetV2.rawValue,
@@ -83,6 +89,7 @@ final class AppSettings: ObservableObject {
 
         preferredMicUID = defaults.string(forKey: Keys.preferredMicUID)
         preferredMicName = defaults.string(forKey: Keys.preferredMicName)
+        feedVirtualMic = defaults.bool(forKey: Keys.feedVirtualMic)
         hotkey = defaults.string(forKey: Keys.hotkey).flatMap(HotkeyKey.init(rawValue:)) ?? .rightOption
         hotkeyMode = defaults.string(forKey: Keys.hotkeyMode).flatMap(HotkeyMode.init(rawValue:)) ?? .hybrid
         speechModel = defaults.string(forKey: Keys.speechModel).flatMap(SpeechModelChoice.init(rawValue:)) ?? .parakeetV2
@@ -108,6 +115,7 @@ final class AppSettings: ObservableObject {
         static let didFirstRun = "sfv.didFirstRun"
         static let preferredMicUID = "sfv.preferredMicUID"
         static let preferredMicName = "sfv.preferredMicName"
+        static let feedVirtualMic = "sfv.feedVirtualMic"
         static let hotkey = "sfv.hotkey"
         static let hotkeyMode = "sfv.hotkeyMode"
         static let speechModel = "sfv.speechModel"

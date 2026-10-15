@@ -156,11 +156,62 @@ private struct GeneralPage: View {
 }
 
 private struct MicrophonePage: View {
+    @ObservedObject private var settings = AppSettings.shared
+
     var body: some View {
         Form {
             Section {
                 MicrophonePickerView()
             }
+
+            Section {
+                Toggle(isOn: $settings.feedVirtualMic) {
+                    Text("Mute calls while dictating")
+                    Text("Pick 64Voice Mic as the input in Discord or any call app. It carries this microphone and goes silent while you dictate.")
+                }
+                .toggleStyle(.switch)
+                VirtualMicStatusRow()
+            } header: {
+                Text("64Voice Mic")
+            }
+        }
+    }
+}
+
+private struct VirtualMicStatusRow: View {
+    @ObservedObject private var bridge = VirtualMicBridge.shared
+
+    var body: some View {
+        switch bridge.status {
+        case .notInstalled:
+            CalloutRow(
+                symbol: "exclamationmark.triangle.fill",
+                tint: .orange,
+                text: "The 64Voice Mic driver isn't installed. Run scripts/install-mic-driver.sh from the 64Voice folder.",
+                actionTitle: nil,
+                action: nil
+            )
+        case .off:
+            CalloutRow(symbol: "mic.slash.fill", tint: .secondary, text: "Off. 64Voice Mic stays silent.", actionTitle: nil, action: nil)
+        case .needsMicAccess:
+            CalloutRow(
+                symbol: "exclamationmark.triangle.fill",
+                tint: .orange,
+                text: "Needs microphone access.",
+                actionTitle: "Grant…"
+            ) {
+                Task { _ = await PermissionsManager.shared.requestMicrophone() }
+            }
+        case .waiting:
+            CalloutRow(symbol: "checkmark.circle.fill", tint: .green, text: "Ready. No app is listening to 64Voice Mic right now.", actionTitle: nil, action: nil)
+        case .live(let source):
+            if bridge.isMuted {
+                CalloutRow(symbol: "mic.slash.fill", tint: .orange, text: "Muted while you dictate.", actionTitle: nil, action: nil)
+            } else {
+                CalloutRow(symbol: "dot.radiowaves.left.and.right", tint: .green, text: "Live: \(source) → 64Voice Mic.", actionTitle: nil, action: nil)
+            }
+        case .failed(let message):
+            CalloutRow(symbol: "exclamationmark.triangle.fill", tint: .red, text: "Couldn't start 64Voice Mic: \(message)", actionTitle: nil, action: nil)
         }
     }
 }

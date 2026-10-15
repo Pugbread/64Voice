@@ -24,7 +24,8 @@ final class AudioDeviceManager: ObservableObject {
         if let uid = preferredUID, !uid.isEmpty, let device = device(uid: uid) {
             return device
         }
-        return systemDefaultInput ?? inputDevices.first
+        // No usable default (e.g. the system input is set to 64Voice Mic): the built-in mic is the safest pick.
+        return systemDefaultInput ?? inputDevices.first { $0.transport == "builtIn" } ?? inputDevices.first
     }
 
     func isConnected(uid: String) -> Bool {
